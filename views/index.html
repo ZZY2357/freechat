@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>评论</title>
+        <script src="./static/js/vue.min.js"></script>
+        <script src="./static/js/axios.min.js"></script>
+        <script src="./static/js/script.js"></script>
+        <link rel="stylesheet" href="./static/css/bulma.min.css" />
+    </head>
+    <body>
+        <div class="container" id="app">
+            <h1 class="title">评论</h1>
+            <ul>
+                <li v-for="item in comments">
+                    <p>{{ item.name }}: {{ item.content }}</p>
+                </li>
+            </ul>
+            <div
+                class="edit-area columns"
+                style="
+                    width: 100%;
+                    display: block;
+                    position: fixed;
+                    bottom: 10vh;
+                "
+            >
+                <input
+                    v-model="form.name"
+                    type="text"
+                    class="input column is-2"
+                    placeholder="昵称"
+                />
+                <input
+                    @keydown.enter="send"
+                    v-model="form.content"
+                    type="text"
+                    class="input column is-10"
+                    placeholder="内容"
+                />
+                <button @click="send" class="button is-primary">
+                    发送
+                </button>
+            </div>
+        </div>
+    </body>
+</html>
