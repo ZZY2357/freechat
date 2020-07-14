@@ -13,10 +13,19 @@
         <div class="container" id="app">
             <h1 class="title">评论</h1>
             <ul>
-                <li v-for="item in comments">
-                    <p>{{ item.name }}: {{ item.content }}</p>
+                <li v-for="item in comments" class="card">
+                    <div class="card-header">
+                        <h2 class="subtitle card-header-title">
+                            {{ item.name }}
+                        </h2>
+                        <p style="margin-right: 5px;">{{ item.os }}</p>
+                    </div>
+                    <p class="card-content">
+                        {{ item.content }}
+                    </p>
                 </li>
             </ul>
+            <div style="height: 200px;"></div>
             <div
                 class="edit-area columns"
                 style="

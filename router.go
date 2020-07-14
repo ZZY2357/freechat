@@ -19,6 +19,6 @@ func commentsPostRouter(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	var comment Comment
 	c.BindJSON(&comment)
-	addNewComment(comment.Name, comment.Content)
+	addNewComment(comment.Name, comment.Content, comment.OS)
 	c.JSON(http.StatusOK, getComments())
 }

@@ -11,14 +11,15 @@ type Comment struct {
 	gorm.Model
 	Name    string `json:"name"`
 	Content string `json:"content"`
+	OS      string `json:"os"`
 }
 
 func getComments() []Comment {
-	var users []Comment
-	db.Find(&users)
-	return users
+	var comments []Comment
+	db.Find(&comments)
+	return comments
 }
 
-func addNewComment(name string, content string) {
-	db.Create(&Comment{Name: name, Content: content})
+func addNewComment(name string, content string, os string) {
+	db.Create(&Comment{Name: name, Content: content, OS: os})
 }
