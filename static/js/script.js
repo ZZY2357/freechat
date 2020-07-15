@@ -10,14 +10,14 @@ function getOS() {
 
     if (info.match(windowsMatch)) {
         return "Windows";
-    } else if (info.match(macMatch)) {
-        return "Mac OS";
-    } else if (info.match(linuxMatch)) {
-        return "Linux";
     } else if (info.match(iphoneMatch)) {
         return "IPhone";
     } else if (info.match(androidMatch)) {
         return "Android";
+    } else if (info.match(macMatch)) {
+        return "Mac OS";
+    } else if (info.match(linuxMatch)) {
+        return "Linux";
     } else {
         return "Unknown";
     }
