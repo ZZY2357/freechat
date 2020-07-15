@@ -5,6 +5,7 @@
 *.so
 *.dylib
 freechat
+*.db
 
 # Test binary, built with `go test -c`
 *.test
