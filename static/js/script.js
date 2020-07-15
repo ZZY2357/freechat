@@ -51,7 +51,10 @@ window.onload = () => {
                             content: app.form.content,
                             os: app.os
                         })
-                        .then((res) => (app.comments = res.data));
+                        .then((res) => {
+                            app.comments = res.data;
+                            app.form.content = "";
+                        });
                 }
             }
         },

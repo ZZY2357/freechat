@@ -13,7 +13,7 @@
         <div class="container" id="app">
             <h1 class="title">评论</h1>
             <ul>
-                <li v-for="item in comments" class="card">
+                <li v-for="item in comments" class="card" v-bind:id="item.ID">
                     <div class="card-header">
                         <h2 class="subtitle card-header-title">
                             {{ item.name }}
