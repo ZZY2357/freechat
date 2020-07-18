@@ -9,7 +9,7 @@ func main() {
 	}
 	db.AutoMigrate(&Comment{})
 
-	r := gin.New()
+	r := gin.Default()
 	r.Static("static", "static")
 	r.Delims("<!--", "-->")
 	r.LoadHTMLGlob("views/*")
