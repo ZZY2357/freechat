@@ -28,9 +28,9 @@ func main() {
 
 	r := gin.Default()
 	r.Use(corsMiddleware())
-	r.Static("static", "static")
-	r.Delims("<!--", "-->")
-	r.LoadHTMLGlob("views/*")
+	if err := registerAssets(r); err != nil {
+		log.Fatalf("加载内嵌前端资源失败: %v", err)
+	}
 
 	r.GET("/", indexRouter)
 	r.GET("/comments", commentsGetRouter)

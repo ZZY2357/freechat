@@ -13,6 +13,49 @@ go build
 nohup ./freechat &
 ```
 
+前端资源（`views/`、`static/`）已用 `go:embed` 编进二进制，
+所以 **`freechat.exe` 是单文件，拷到任何目录直接跑即可**，不需要带着 `views/` 和 `static/`。
+
+``` sh
+# 直接分发，例如拷到 U 盘或另一台机器
+./freechat.exe
+```
+
+启动后访问 `http://localhost:8080/`。服务监听 `:8080`（所有网卡），
+同一局域网的其他机器可用 `http://<你的IP>:8080/` 访问。
+
+`data.db` 会创建在**运行目录**下，所以换个目录跑等于换一个全新的数据库。
+
+> 注意：改前端文件后必须重新 `go build` 才生效，因为资源是编进二进制的。
+> 构建需要 Go 1.16+（`go:embed` 的要求）。
+
+## 分发给其他平台
+
+交叉编译出目标平台的单文件（不需要在该平台装 Go）：
+
+``` sh
+GOOS=linux   GOARCH=amd64 go build -o freechat-linux
+GOOS=darwin  GOARCH=arm64 go build -o freechat-mac
+GOOS=windows GOARCH=amd64 go build -o freechat.exe
+```
+
+## 分享前建议设置 JWT_SECRET
+
+未设置 `JWT_SECRET` 时，程序使用**源码里公开的内置密钥**，
+这意味着**任何人都能用它伪造任意用户的登录凭证**。
+分享给别人或放到公网前请务必显式指定：
+
+``` sh
+JWT_SECRET="$(head -c 32 /dev/urandom | base64)" ./freechat
+```
+
+Windows PowerShell：
+
+``` powershell
+$env:JWT_SECRET = -join ((1..32) | % { [char](Get-Random -Min 33 -Max 126) })
+.\freechat.exe
+```
+
 # 注册与登录
 
 服务使用 JWT 做身份认证，密码以 bcrypt 摘要存储，不落明文。
