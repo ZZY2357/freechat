@@ -1,13 +1,25 @@
 package main
 
 import (
+	"os"
 	"strings"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
-var db, err = gorm.Open("sqlite3", "./data.db")
+// dbPath 可用 DB_PATH 覆盖。务必让测试/临时实例指向独立的数据库文件，
+// 否则会直接改动正在服务的 data.db。
+var dbPath = envOr("DB_PATH", "./data.db")
+
+var db, err = gorm.Open("sqlite3", dbPath)
+
+func envOr(key string, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+		return value
+	}
+	return fallback
+}
 
 type Comment struct {
 	gorm.Model

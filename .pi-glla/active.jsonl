@@ -1,8 +1,0 @@
-{"type":"session_rebound","value":{"reason":"startup"},"at":"2026-09-10T11:48:25.606Z"}
-{"type":"session_waiting_for_load","value":{"reason":"startup"},"at":"2026-09-10T11:48:25.616Z"}
-{"type":"session_shutdown","value":{"reason":"quit"},"at":"2026-09-10T11:48:48.826Z"}
-{"type":"session_rebound","value":{"reason":"startup"},"at":"2026-09-10T11:49:14.141Z"}
-{"type":"id_invalidation","value":{"oldId":"01a08b25-b794-7329-a28d-ed3ff977ea41","newId":"01a08b26-77b4-767c-b983-40a849dbe1e7","reason":"session_shutdown","shutdownReason":"quit","at":"2026-09-10T11:49:14.150Z"},"at":"2026-09-10T11:49:14.150Z"}
-{"type":"session_waiting_for_load","value":{"reason":"startup"},"at":"2026-09-10T11:49:14.151Z"}
-{"type":"state","value":{"goal":null,"list":[],"loop":null,"mainModelRecovery":null,"lastModelRef":"deepseek/deepseek-v4.1-flash-expires-on-0910"},"at":"2026-09-10T11:49:29.608Z"}
-{"type":"session_shutdown","value":{"reason":"quit"},"at":"2026-09-10T12:09:35.247Z"}

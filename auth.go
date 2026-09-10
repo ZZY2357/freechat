@@ -25,6 +25,9 @@ const (
 	minPasswordLen = 6
 	maxPasswordLen = 72 // bcrypt 只使用前 72 字节，超长直接拒绝以免静默截断
 
+	// authCookieName 是存放 JWT 的 Cookie 名。
+	authCookieName = "freechat_token"
+
 	ctxUsernameKey = "authUsername"
 	ctxUserIDKey   = "authUserID"
 )
@@ -41,13 +44,21 @@ var (
 	errInvalidPassword = errors.New("密码长度需为 6-72 个字符")
 )
 
+// cookieSecure 控制 Cookie 的 Secure 属性。HTTP 环境下必须为 false，
+// 否则浏览器根本不会回传该 Cookie。
+var cookieSecure bool
+
 func init() {
 	if secret := strings.TrimSpace(os.Getenv("JWT_SECRET")); secret != "" {
 		jwtSecret = []byte(secret)
 		jwtSecretFromEnv = true
-		return
+	} else {
+		jwtSecret = fallbackJWTSecret
 	}
-	jwtSecret = fallbackJWTSecret
+
+	if value, err := strconv.ParseBool(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))); err == nil {
+		cookieSecure = value
+	}
 }
 
 // claims 是写进 JWT 的负载，只放身份信息，不放任何敏感数据。
@@ -63,7 +74,6 @@ type credentials struct {
 }
 
 type authPayload struct {
-	Token     string    `json:"token"`
 	Username  string    `json:"username"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
@@ -86,6 +96,37 @@ func generateToken(user User) (string, time.Time, error) {
 
 	signed, err := token.SignedString(jwtSecret)
 	return signed, expiresAt, err
+}
+
+// setAuthCookie 把 JWT 写进 HttpOnly Cookie。
+// HttpOnly 让 JS 读不到凭证；SameSite=Lax 让跨站 POST 不携带 Cookie，
+// 从而在不引入 CSRF token 的前提下拦住写接口的 CSRF。
+func setAuthCookie(c *gin.Context, token string, expiresAt time.Time) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     authCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt,
+		MaxAge:   int(time.Until(expiresAt).Seconds()),
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// clearAuthCookie 删除认证 Cookie。
+// 必须使用与写入时完全一致的 Path / Secure / SameSite，否则删不掉。
+func clearAuthCookie(c *gin.Context) {
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     authCookieName,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 func parseToken(tokenString string) (*claims, error) {
@@ -122,10 +163,22 @@ func bearerToken(c *gin.Context) string {
 	return strings.TrimSpace(parts[1])
 }
 
+// requestToken 依次从 Authorization 头和认证 Cookie 中取 token。
+// 浏览器走 HttpOnly Cookie；脚本与第三方 API 客户端仍可用 Bearer 头。
+func requestToken(c *gin.Context) string {
+	if header := bearerToken(c); header != "" {
+		return header
+	}
+	if value, err := c.Cookie(authCookieName); err == nil {
+		return value
+	}
+	return ""
+}
+
 // authRequired 校验 JWT，通过后把用户信息写入 gin.Context。
 func authRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := bearerToken(c)
+		token := requestToken(c)
 		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "请先登录"})
 			return
@@ -200,7 +253,8 @@ func registerRouter(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, authPayload{Token: token, Username: user.Username, ExpiresAt: expiresAt})
+	setAuthCookie(c, token, expiresAt)
+	c.JSON(http.StatusCreated, authPayload{Username: user.Username, ExpiresAt: expiresAt})
 }
 
 func loginRouter(c *gin.Context) {
@@ -228,7 +282,14 @@ func loginRouter(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, authPayload{Token: token, Username: user.Username, ExpiresAt: expiresAt})
+	setAuthCookie(c, token, expiresAt)
+	c.JSON(http.StatusOK, authPayload{Username: user.Username, ExpiresAt: expiresAt})
+}
+
+// logoutRouter 清掉认证 Cookie。必须由服务端做，因为 HttpOnly Cookie 前端删不掉。
+func logoutRouter(c *gin.Context) {
+	clearAuthCookie(c)
+	c.JSON(http.StatusOK, gin.H{"message": "已退出登录"})
 }
 
 // meRouter 让前端在刷新页面后校验本地 token 是否仍然有效。

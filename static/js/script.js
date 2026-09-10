@@ -1,7 +1,8 @@
 let app;
 
-const TOKEN_KEY = "freechat_token";
-const USER_KEY = "freechat_user";
+// 凭证放在 HttpOnly Cookie 里，JS 读不到，也不再需要 localStorage。
+// 因此登录态只能在启动时问服务端要，不能同步读出来。
+axios.defaults.withCredentials = true;
 
 function getOS() {
     let info = navigator.userAgent.toLowerCase();
@@ -26,42 +27,14 @@ function getOS() {
     }
 }
 
-function loadStoredUser() {
-    try {
-        const raw = localStorage.getItem(USER_KEY);
-        return raw ? JSON.parse(raw) : null;
-    } catch (err) {
-        return null;
-    }
-}
-
-function storeSession(token, username) {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify({ username: username }));
-}
-
-function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-}
-
-// 所有请求自动带上 JWT
-axios.interceptors.request.use((config) => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-        config.headers.Authorization = "Bearer " + token;
-    }
-    return config;
-});
-
-// token 失效时清掉本地会话并弹出登录框（登录/注册接口自身的 401 交给表单处理）
+// Cookie 过期或失效时清掉内存里的登录态并弹出登录框
+// （登录/注册接口自身的 401 交给表单处理）
 axios.interceptors.response.use(
     (res) => res,
     (error) => {
         const status = error.response && error.response.status;
         const url = (error.config && error.config.url) || "";
         if (status === 401 && app && url.indexOf("/auth/") !== 0) {
-            clearSession();
             app.user = null;
             if (!app.authModal.open) {
                 app.openAuth("login");
@@ -85,7 +58,9 @@ window.onload = () => {
         data: {
             comments: [],
             os: getOS(),
-            user: loadStoredUser(),
+            user: null,
+            // 登录态要等 /auth/me 回来才知道，先用它压住头部避免闪一下“未登录”
+            authReady: false,
             form: {
                 content: ""
             },
@@ -103,6 +78,20 @@ window.onload = () => {
         methods: {
             getData() {
                 axios.get("/comments").then((res) => (app.comments = res.data));
+            },
+            // Cookie 是 HttpOnly 的，前端无法判断自己是否已登录，只能问服务端
+            refreshSession() {
+                return axios
+                    .get("/auth/me")
+                    .then((res) => {
+                        app.user = { username: res.data.username };
+                    })
+                    .catch(() => {
+                        app.user = null;
+                    })
+                    .then(() => {
+                        app.authReady = true;
+                    });
             },
             send() {
                 const content = app.form.content.trim();
@@ -159,14 +148,15 @@ window.onload = () => {
                 app.authModal.loading = true;
                 app.authModal.error = "";
 
+                // 凭证由服务端通过 Set-Cookie 下发，响应体里没有 token
                 axios
                     .post(isLogin ? "/auth/login" : "/auth/register", {
                         username: username,
                         password: password
                     })
                     .then((res) => {
-                        storeSession(res.data.token, res.data.username);
                         app.user = { username: res.data.username };
+                        app.authReady = true;
                         app.authModal.loading = false;
                         app.closeAuth();
                         app.getData();
@@ -180,21 +170,20 @@ window.onload = () => {
                     });
             },
             logout() {
-                clearSession();
-                app.user = null;
-                app.form.content = "";
-                app.getData();
+                // HttpOnly Cookie 前端删不掉，必须请服务端清除
+                axios
+                    .post("/auth/logout")
+                    .catch(() => {})
+                    .then(() => {
+                        app.user = null;
+                        app.form.content = "";
+                        app.getData();
+                    });
             }
         },
         created() {
             this.getData();
-            // 用本地 token 换一次身份，确认它还没过期
-            if (this.user) {
-                axios.get("/auth/me").catch(() => {
-                    clearSession();
-                    app.user = null;
-                });
-            }
+            this.refreshSession();
         }
     });
 };

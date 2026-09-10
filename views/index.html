@@ -16,25 +16,27 @@
                     <h1 class="title level-item">评论</h1>
                 </div>
                 <div class="level-right">
-                    <template v-if="user">
-                        <span class="level-item"
-                            >你好，<strong>{{ user.username }}</strong></span
+                    <template v-if="authReady">
+                        <template v-if="user">
+                            <span class="level-item"
+                                >你好，<strong>{{ user.username }}</strong></span
+                            >
+                            <button class="button is-light" @click="logout">
+                                退出登录
+                            </button>
+                        </template>
+                        <button
+                            v-else
+                            class="button is-primary"
+                            @click="openAuth('login')"
                         >
-                        <button class="button is-light" @click="logout">
-                            退出登录
+                            登录 / 注册
                         </button>
                     </template>
-                    <button
-                        v-else
-                        class="button is-primary"
-                        @click="openAuth('login')"
-                    >
-                        登录 / 注册
-                    </button>
                 </div>
             </div>
 
-            <p class="notification is-info is-light" v-if="!user">
+            <p class="notification is-info is-light" v-if="authReady && !user">
                 请先登录后再发表评论。
             </p>
 
