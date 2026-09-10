@@ -11,7 +11,33 @@
     </head>
     <body>
         <div class="container" id="app">
-            <h1 class="title">评论</h1>
+            <div class="level" style="margin-top: 1.5rem;">
+                <div class="level-left">
+                    <h1 class="title level-item">评论</h1>
+                </div>
+                <div class="level-right">
+                    <template v-if="user">
+                        <span class="level-item"
+                            >你好，<strong>{{ user.username }}</strong></span
+                        >
+                        <button class="button is-light" @click="logout">
+                            退出登录
+                        </button>
+                    </template>
+                    <button
+                        v-else
+                        class="button is-primary"
+                        @click="openAuth('login')"
+                    >
+                        登录 / 注册
+                    </button>
+                </div>
+            </div>
+
+            <p class="notification is-info is-light" v-if="!user">
+                请先登录后再发表评论。
+            </p>
+
             <ul>
                 <li v-for="item in comments" class="card" v-bind:id="item.ID">
                     <div class="card-header">
@@ -36,21 +62,94 @@
                 "
             >
                 <input
-                    v-model="form.name"
-                    type="text"
-                    class="input column is-2"
-                    placeholder="昵称"
-                />
-                <input
-                    @keydown.enter="send"
                     v-model="form.content"
+                    @keydown.enter="send"
                     type="text"
                     class="input column is-10"
-                    placeholder="内容"
+                    :disabled="!user"
+                    :placeholder="user ? '内容' : '登录后可发表评论'"
                 />
-                <button @click="send" class="button is-primary">
+                <button
+                    @click="send"
+                    class="button is-primary"
+                    :disabled="!user"
+                >
                     发送
                 </button>
+            </div>
+
+            <div class="modal" :class="{ 'is-active': authModal.open }">
+                <div class="modal-background" @click="closeAuth"></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title">
+                            {{ authModal.mode === 'login' ? '登录' : '注册' }}
+                        </p>
+                        <button
+                            class="delete"
+                            aria-label="close"
+                            @click="closeAuth"
+                        ></button>
+                    </header>
+                    <section class="modal-card-body">
+                        <div class="tabs is-toggle is-fullwidth">
+                            <ul>
+                                <li
+                                    :class="{ 'is-active': authModal.mode === 'login' }"
+                                >
+                                    <a @click="switchMode('login')">登录</a>
+                                </li>
+                                <li
+                                    :class="{ 'is-active': authModal.mode === 'register' }"
+                                >
+                                    <a @click="switchMode('register')">注册</a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">用户名</label>
+                            <div class="control">
+                                <input
+                                    v-model="authForm.username"
+                                    class="input"
+                                    type="text"
+                                    placeholder="3-20 个字符"
+                                    autocomplete="username"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">密码</label>
+                            <div class="control">
+                                <input
+                                    v-model="authForm.password"
+                                    @keydown.enter="submitAuth"
+                                    class="input"
+                                    type="password"
+                                    placeholder="至少 6 个字符"
+                                    autocomplete="current-password"
+                                />
+                            </div>
+                        </div>
+
+                        <p class="help is-danger" v-if="authModal.error">
+                            {{ authModal.error }}
+                        </p>
+                    </section>
+                    <footer class="modal-card-foot">
+                        <button
+                            class="button is-primary"
+                            :class="{ 'is-loading': authModal.loading }"
+                            :disabled="authModal.loading"
+                            @click="submitAuth"
+                        >
+                            {{ authModal.mode === 'login' ? '登录' : '注册并登录' }}
+                        </button>
+                        <button class="button" @click="closeAuth">取消</button>
+                    </footer>
+                </div>
             </div>
         </div>
     </body>
